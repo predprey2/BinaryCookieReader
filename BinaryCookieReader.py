@@ -11,14 +11,14 @@
 #                                                                               #
 #*******************************************************************************#
 
+import io
 import sys
 from struct import unpack
-from StringIO import StringIO
 from time import strftime, gmtime
 
 if len(sys.argv)!=2:
-	print "\nUsage: Python BinaryCookieReader.py [Full path to Cookies.binarycookies file] \n"
-	print "Example: Python BinaryCookieReader.py C:\Cookies.binarycookies"
+	print("\nUsage: Python BinaryCookieReader.py [Full path to Cookies.binarycookies file] \n")
+	print("Example: Python BinaryCookieReader.py C:\Cookies.binarycookies")
 	sys.exit(0)
 	
 FilePath=sys.argv[1]
@@ -26,13 +26,13 @@ FilePath=sys.argv[1]
 try:
 	binary_file=open(FilePath,'rb')
 except IOError as e:
-	print 'File Not Found :'+ FilePath
+	print('File Not Found :'+ FilePath)
 	sys.exit(0)
    
 file_header=binary_file.read(4)                             #File Magic String:cook 
 
-if str(file_header)!='cook':
-	print "Not a Cookies.binarycookie file"
+if str(file_header)!='b\'cook\'':
+	print("Not a Cookies.binarycookie file")
 	sys.exit(0)
 	
 num_pages=unpack('>i',binary_file.read(4))[0]               #Number of pages in the binary file: 4 bytes
@@ -46,12 +46,12 @@ for ps in page_sizes:
 	pages.append(binary_file.read(ps))                      #Grab individual pages and each page will contain >= one cookie
 
 	
-print "#*************************************************************************#"
-print "# BinaryCookieReader: developed by Satishb3: http://www.securitylearn.net #"
-print "#*************************************************************************#"
+print("#*************************************************************************#")
+print("# BinaryCookieReader: developed by Satishb3: http://www.securitylearn.net #")
+print("#*************************************************************************#")
 
 for page in pages:
-	page=StringIO(page)                                     #Converts the string to a file. So that we can use read/write operations easily.
+	page=io.BytesIO(page)                                     #Converts the string to a file. So that we can use read/write operations easily.
 	page.read(4)                                            #page header: 4 bytes: Always 00000100
 	num_cookies=unpack('<i',page.read(4))[0]                #Number of cookies in each page, first 4 bytes after the page header in every page.
 	
@@ -65,7 +65,7 @@ for page in pages:
 	for offset in cookie_offsets:
 		page.seek(offset)                                   #Move the page pointer to the cookie starting point
 		cookiesize=unpack('<i',page.read(4))[0]             #fetch cookie size
-		cookie=StringIO(page.read(cookiesize))              #read the complete cookie 
+		cookie=io.BytesIO(page.read(cookiesize))              #read the complete cookie 
 		
 		cookie.read(4)                                      #unknown
 		
@@ -96,36 +96,36 @@ for page in pages:
 				
 		create_date_epoch=unpack('<d',cookie.read(8))[0]+978307200           #Cookies creation time
 		create_date=strftime("%a, %d %b %Y ",gmtime(create_date_epoch))[:-1]
-		#print create_date
+		#print(create_date)
 		
 		cookie.seek(urloffset-4)                            #fetch domaain value from url offset
 		url=''
 		u=cookie.read(1)
 		while unpack('<b',u)[0]!=0:
-			url=url+str(u)
+			url=url+str(u.decode('utf-8'))
 			u=cookie.read(1)
 				
 		cookie.seek(nameoffset-4)                           #fetch cookie name from name offset
 		name=''
 		n=cookie.read(1)
 		while unpack('<b',n)[0]!=0:
-			name=name+str(n)
+			name=name+str(n.decode('utf-8'))
 			n=cookie.read(1)
 				
 		cookie.seek(pathoffset-4)                          #fetch cookie path from path offset
 		path=''
 		pa=cookie.read(1)
 		while unpack('<b',pa)[0]!=0:
-			path=path+str(pa)
+			path=path+str(pa.decode('utf-8'))
 			pa=cookie.read(1)
 				
 		cookie.seek(valueoffset-4)                         #fetch cookie value from value offset
 		value=''
 		va=cookie.read(1)
 		while unpack('<b',va)[0]!=0:
-			value=value+str(va)
+			value=value+str(va.decode('utf-8'))
 			va=cookie.read(1)
 		
-		print 'Cookie : '+name+'='+value+'; domain='+url+'; path='+path+'; '+'expires='+expiry_date+'; '+cookie_flags
+		print('Cookie : '+name+'\nValue='+value+'\ndomain='+url+'\npath='+path+'\n'+'expires='+expiry_date+'\n'+cookie_flags+'\n\n')
 		
 binary_file.close()
